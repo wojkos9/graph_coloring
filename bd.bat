@@ -1,0 +1,1 @@
+g++ -omain src\main.cpp
