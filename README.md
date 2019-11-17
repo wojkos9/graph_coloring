@@ -8,7 +8,6 @@ Data source:\
 Options:\
 -T do Tabu Search\
 -G do greedy coloring\
--r file file to store the results in\
 -g generate graph dot files\
 -v verbose\
 -o store the graph in file\
