@@ -68,49 +68,19 @@ public:
     Graph(bool debug) : d_cout(debug) {
         num_edges = 0;
     }
-    void saveToTxt(const char* fname) {
-        FILE *file = fopen(fname, "w");
-        int n = vertices.size();
-        fprintf(file, "%d\n", n);
-        for (int i=0; i < n; i++) {
-            for (int j=i+1; j < n; j++) {
-                if (isEdge(i, j))
-                    fprintf(file, "%d %d\n", i+1, j+1);
-            }
-        }
-        fclose(file);
-    }
-    void fromFile(const char* fname) {
-        FILE *file = fopen(fname, "r");
-        if (!file)
-            cerr << "Error file\n";
-        int n;
-        num_edges = 0;
-        fscanf(file, "%d", &n);
-        d_cout << n;
-        vertices = vector<list<int>>(n);
-        colors = vector<int>(n, -1);
-        int v, w;
-        while (fscanf(file, "%d%d", &v, &w) != -1) {
-            vertices[v-1].push_front(w-1);
-            vertices[w-1].push_front(v-1);
-            num_edges++;
-        }
-        fclose(file);
-        d_cout << "Loaded\n";
-    }
+
     int colorGreedily() {
         return colorGreedily(colors);
     }
 
-    void recolor(vector<int> &colors, int k) {
+    void recolor(vector<int> &colors, int k) { // reduces the number of colors, creating conflicts
         for (int &col : colors) {
             if (col == k)
                 col--;
         }
     }
 
-    int costf(vector<int> &colors) {
+    int costf(vector<int> &colors) { // computes the cost function
         int conflicts = 0;
         for (int v = 0; v < vertices.size(); v++) {
             int c = colors[v];
@@ -121,7 +91,7 @@ public:
         }
         return conflicts;
     }
-    int costf_mat (vector<int> &colors, vector<vector<int>> &cost_mat) {
+    int costf_mat (vector<int> &colors, vector<vector<int>> &cost_mat) { // computes cost function from the cost matrix
         int conflicts = 0;
         int n = cost_mat.size();
         for(int i = 0; i < n; i++) {
@@ -132,7 +102,7 @@ public:
         return conflicts;
     }
 
-    void computeCM(vector<vector<int>> &cost_mat, vector<int> &colors, int k) {
+    void computeCM(vector<vector<int>> &cost_mat, vector<int> &colors, int k) { // fills cost matrix of k colors
         for (int v = 0; v < vertices.size(); v++) {
             for (int j=0; j < k; j++)
                 cost_mat[v][j] = 0;
@@ -300,7 +270,40 @@ public:
         sprintf(fname2, "out\\graph_%d_%d.gv", vertices.size(), num_edges);
         return saveGraph(fname2);
     }
-    bool saveGraph(const char* fname) // stores graph in DOT format in "out/graph_{N}.gv"
+
+    void saveToTxt(const char* fname) {
+        FILE *file = fopen(fname, "w");
+        int n = vertices.size();
+        fprintf(file, "%d\n", n);
+        for (int i=0; i < n; i++) {
+            for (int j=i+1; j < n; j++) {
+                if (isEdge(i, j))
+                    fprintf(file, "%d %d\n", i+1, j+1);
+            }
+        }
+        fclose(file);
+    }
+    void fromFile(const char* fname) {
+        FILE *file = fopen(fname, "r");
+        if (!file)
+            cerr << "Error file\n";
+        int n;
+        num_edges = 0;
+        fscanf(file, "%d", &n);
+        d_cout << n;
+        vertices = vector<list<int>>(n);
+        colors = vector<int>(n, -1);
+        int v, w;
+        while (fscanf(file, "%d%d", &v, &w) != -1) {
+            vertices[v-1].push_front(w-1);
+            vertices[w-1].push_front(v-1);
+            num_edges++;
+        }
+        fclose(file);
+        d_cout << "Loaded\n";
+    }
+
+    bool saveGraph(const char* fname) // stores colored graph in DOT format
     {   
         FILE *graphOut;
         graphOut = fopen(fname, "w");
