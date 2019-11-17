@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "constants.h"
 
-static int VERBOSE = 0;
+static int VERBOSE_LEVEL = 0;
 static bool PRINT_GRAPH = false;
 static bool GEN_GRAPH_FILE = false;
 static bool STORE_TXT = false;
@@ -24,9 +24,9 @@ int main(int argc, char** argv) {
     char opt;
     while ((opt = getopt(argc, argv, "hn:s:r:i:l:a:12pgo:GTS:v")) != -1) {
         switch (opt) {
-			case 'h':
-				printf("%s", helpString);
-				return 0;
+	    case 'h':
+		printf("%s", helpString);
+		return 0;
             case 'n':
                 size = atoi(optarg);
                 break;
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
                 reps = atoi(optarg);
                 break;
             case 'v':
-                VERBOSE = 1;
+                VERBOSE_LEVEL = 1;
                 break;
             case 'p':
                 PRINT_GRAPH = true;
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    Graph g (VERBOSE);
+    Graph g (VERBOSE_LEVEL);
 
     if (graphInFname)
         g.fromFile(graphInFname);
