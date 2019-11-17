@@ -7,26 +7,27 @@
 #include "utils.h"
 #include "constants.h"
 
-static int VERBOSE_LEVEL = 0;
-static bool PRINT_GRAPH = false;
+static int VERBOSE = 0;
 static bool GEN_GRAPH_FILE = false;
 static bool STORE_TXT = false;
 
 int main(int argc, char** argv) {
 
-    int size = 0, reps;
+    int size = 0;
     float saturation = 0.6f;
     const char *resFname = NULL, *graphInFname = NULL, *graphOutFname = NULL;
 
     bool doGreedy = false, doTabu = false;
     int seed = -1;
 
+    bool CHECK_COLORING = false;
+
     char opt;
-    while ((opt = getopt(argc, argv, "hn:s:r:i:l:a:12pgo:GTS:v")) != -1) {
+    while ((opt = getopt(argc, argv, "hn:s:r:i:l:12go:GTS:vc")) != -1) {
         switch (opt) {
-	    case 'h':
-		printf("%s", helpString);
-		return 0;
+			case 'h':
+				printf("%s", helpString);
+				return 0;
             case 'n':
                 size = atoi(optarg);
                 break;
@@ -39,14 +40,8 @@ int main(int argc, char** argv) {
             case 'i':
                 graphInFname = optarg;
                 break;
-            case 'a':
-                reps = atoi(optarg);
-                break;
             case 'v':
-                VERBOSE_LEVEL = 1;
-                break;
-            case 'p':
-                PRINT_GRAPH = true;
+                VERBOSE = 1;
                 break;
             case 'g':
                 GEN_GRAPH_FILE = true;
@@ -64,10 +59,13 @@ int main(int argc, char** argv) {
             case 'S':
                 seed = atoi(optarg);
                 break;
+            case 'c':
+                CHECK_COLORING = true;
+                break;
         }
     }
 
-    Graph g (VERBOSE_LEVEL);
+    Graph g (VERBOSE);
 
     if (graphInFname)
         g.fromFile(graphInFname);
@@ -89,12 +87,16 @@ int main(int argc, char** argv) {
         res_greedy = g.colorGreedily();
         if (GEN_GRAPH_FILE)
             g.saveGraph("./out/greedy_col.gv");
+        if (CHECK_COLORING)
+            cout << "Greedy OK?: " << g.coloredCorrectly() << endl;
     }
         
     if (doTabu) {
         res_tabu = g.sortTabu();
         if (GEN_GRAPH_FILE)
             g.saveGraph("./out/tabu_col.gv");
+        if (CHECK_COLORING)
+            cout << "Tabu OK?: " << g.coloredCorrectly() << endl;
     }
     if (seed != -1)
         cout << "Seed: " << seed;
