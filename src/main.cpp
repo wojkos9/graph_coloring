@@ -88,13 +88,13 @@ int main(int argc, char** argv) {
     if (doGreedy) {
         res_greedy = g.colorGreedily();
         if (GEN_GRAPH_FILE)
-            g.saveGraph("out_greedy.txt");
+            g.saveGraph("./out/greedy_col.gv");
     }
         
     if (doTabu) {
         res_tabu = g.sortTabu();
         if (GEN_GRAPH_FILE)
-            g.saveGraph("out_tabu.txt");
+            g.saveGraph("./out/tabu_col.gv");
     }
     if (seed != -1)
         cout << "Seed: " << seed;
