@@ -9,8 +9,6 @@ Options:\
 -T do Tabu Search\
 -G do greedy coloring\
 -r file file to store the results in\
--g generate graph dot file\
--a number of measurements to take the average from\
+-g generate graph dot files\
 -v verbose\
--o file store the graph in file\
--p print graph\
+-o store the graph in file\
