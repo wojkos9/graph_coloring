@@ -11,4 +11,5 @@ Options:\
 -r file file to store the results in\
 -g generate graph dot files\
 -v verbose\
--o store the graph in file
+-o store the graph in file\
+-c check if colorings are valid
