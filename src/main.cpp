@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "constants.h"
 
-static int VERBOSE = 0;
+static int VERBOSE_LEVEL = 0;
 static bool GEN_GRAPH_FILE = false;
 static bool STORE_TXT = false;
 
@@ -21,9 +21,10 @@ int main(int argc, char** argv) {
     int seed = -1;
 
     bool CHECK_COLORING = false;
+    int max=0, length=0;
 
     char opt;
-    while ((opt = getopt(argc, argv, "hn:s:r:i:l:12go:GTS:vc")) != -1) {
+    while ((opt = getopt(argc, argv, "hn:s:r:i:l:12go:GTS:vcm:l:")) != -1) {
         switch (opt) {
 			case 'h':
 				printf("%s", helpString);
@@ -41,7 +42,7 @@ int main(int argc, char** argv) {
                 graphInFname = optarg;
                 break;
             case 'v':
-                VERBOSE = 1;
+                VERBOSE_LEVEL = 1;
                 break;
             case 'g':
                 GEN_GRAPH_FILE = true;
@@ -62,10 +63,16 @@ int main(int argc, char** argv) {
             case 'c':
                 CHECK_COLORING = true;
                 break;
+            case 'm':
+                max = atoi(optarg);
+                break;
+            case 'l':
+                length = atoi(optarg);
+                break;
         }
     }
 
-    Graph g (VERBOSE);
+    Graph g (VERBOSE_LEVEL);
 
     if (graphInFname)
         g.fromFile(graphInFname);
@@ -78,13 +85,17 @@ int main(int argc, char** argv) {
         cerr << "Too few parameters.\n";
         exit(-1);
     }
+    cout << "Loaded graph with " << g.getNumVertices() << " vertices and " << g.getNumEdges() << " edges\n";
+
     if (STORE_TXT && graphOutFname) {
-        g.saveToTxt(graphOutFname);
+        if (g.saveToTxt(graphOutFname))
+            cout << "Graph saved in " << graphOutFname << endl;
     }
 
     int res_greedy = -1, res_tabu = -1;
     if (doGreedy) {
-        res_greedy = g.colorGreedily();
+        cout << "\nGreedy time:" << TIME_OP(res_greedy = g.colorGreedily(), true) << "us\n";
+        cout << "Colors: " << res_greedy << endl;
         if (GEN_GRAPH_FILE)
             g.saveGraph("./out/greedy_col.gv");
         if (CHECK_COLORING)
@@ -92,14 +103,17 @@ int main(int argc, char** argv) {
     }
         
     if (doTabu) {
-        res_tabu = g.sortTabu();
+        int m = max ? max : 1000;
+        int l = length ? length : 10;
+        cout << "\nTabu Search (" << m << ", " << l << ") time: " << TIME_OP(res_tabu = g.colorTabuSearch(m, l), true) << "us\n";
+        cout << "Colors: " << res_tabu << endl;
         if (GEN_GRAPH_FILE)
             g.saveGraph("./out/tabu_col.gv");
         if (CHECK_COLORING)
             cout << "Tabu OK?: " << g.coloredCorrectly() << endl;
     }
     if (seed != -1)
-        cout << "Seed: " << seed;
-    cout << endl << "Greedy:\t" << res_greedy << endl << "TS:\t" << res_tabu << endl;
+        cout << "Seed was: " << seed;
+    //cout << endl << "Greedy:\t" << res_greedy << endl << "TS:\t" << res_tabu << endl;
     return 0;
 }
