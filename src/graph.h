@@ -122,12 +122,19 @@ public:
         return true;
     }
 
-    int sortTabu() {
+    int getNumVertices() {
+        return vertices.size();
+    }
+    int getNumEdges() {
+        return num_edges;
+    }
+
+    int colorTabuSearch(int max, int l) {
         typedef pair<int, int> move_t; // custom type for storing moves in the tabu list
 
         // Parameters:
-        int max = 1000; // max number of iterations
-        int l = 10; // tabu list length
+        //int max = 1000; // max number of iterations
+        //int l = 10; // tabu list length
 
         list<move_t> tabu_list;
         int n = vertices.size();
@@ -200,7 +207,7 @@ public:
                     }
                     d_cout << best_move.first << " " << old_c << "->" << new_c << endl;
                     printMat(cost_mat, n, nc);
-                    s[i] = new_c; // mave the move (change color of i)
+                    s[i] = new_c; // make the move (change color of i)
                     d_cout << "AFTER: ";
                     printVec(s, n);
 
@@ -271,8 +278,10 @@ public:
         return saveGraph(fname2);
     }
 
-    void saveToTxt(const char* fname) {
+    bool saveToTxt(const char* fname) {
         FILE *file = fopen(fname, "w");
+        if (!file)
+            return false;
         int n = vertices.size();
         fprintf(file, "%d\n", n);
         for (int i=0; i < n; i++) {
@@ -282,6 +291,7 @@ public:
             }
         }
         fclose(file);
+        return true;
     }
     void fromFile(const char* fname) {
         FILE *file = fopen(fname, "r");
