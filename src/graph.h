@@ -11,14 +11,14 @@
 
 using namespace std;
 
-#include "debug_stream.h"
+#include "debug_stream/d_cout.h"
+#include "globals.h"
 
 class Graph {
     vector<list<int>> vertices;
     vector<int> colors;
     int num_edges;
     int n;
-    DebugStream d_cout;
 
     int colorGreedily(vector<int> &colors) {
         int max_color = 0;
@@ -65,7 +65,7 @@ class Graph {
     }
     
 public:
-    Graph(bool debug) : d_cout(debug) {
+    Graph()  {
         num_edges = 0;
     }
 
@@ -137,9 +137,8 @@ public:
     int colorTabuSearch(int max, int l) {
         typedef pair<int, int> move_t; // custom type for storing moves in the tabu list
 
-        // Parameters:
-        //int max = 1000; // max number of iterations
-        //int l = 10; // tabu list length
+        d_cout << reql(1) << BEGIN_DEBUG_STR;
+        d_cout << reql(2);
 
         list<move_t> tabu_list;
         int n = vertices.size();
@@ -164,6 +163,7 @@ public:
         vector<vector<int>> cost_mat(n, vector<int>(nc));
 
         int nb = 0; // iteration counter
+        int ti = 0; // total iterations
         while (nb < max) {
 
             computeCM(cost_mat, s, nc); // compute cost matrix
@@ -227,8 +227,10 @@ public:
                     tabu_list.pop_back();
                 }
                 nb++;
+                ti++;
             }
             if (f1 <= 0) { // if there are no conflicts left
+                d_cout << reql(1) << ti << " " << nc << endl << reql(2);
                 valid_coloring = vector<int>(s); // store last valid coloring
                 recolor(s, nc-1); // try to reduce the number of colors
                 nc--;
@@ -236,6 +238,7 @@ public:
             }
             
         }
+        d_cout << reql(1) << END_DEBUG_STR;
         colors = vector<int>(valid_coloring);
         return nc+1;
     }

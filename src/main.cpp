@@ -6,13 +6,14 @@
 #include "graph.h"
 #include "utils.h"
 #include "constants.h"
+#include "debug_stream/d_cout.h"
+#include "globals.h"
 
-static int VERBOSE_LEVEL = 0;
+int VERBOSE_LEVEL = 0;
 static bool GEN_GRAPH_FILE = false;
 static bool STORE_TXT = false;
 
 int main(int argc, char** argv) {
-
     int size = 0;
     float saturation = 0.6f;
     const char *resFname = NULL, *graphInFname = NULL, *graphOutFname = NULL;
@@ -43,7 +44,7 @@ int main(int argc, char** argv) {
                 graphInFname = opt.arg;
                 break;
             case 'v':
-                VERBOSE_LEVEL = 1;
+                d_cout.level++;
                 break;
             case 'g':
                 GEN_GRAPH_FILE = true;
@@ -73,7 +74,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    Graph g (VERBOSE_LEVEL);
+    Graph g;
 
     if (graphInFname)
         g.fromFile(graphInFname);
