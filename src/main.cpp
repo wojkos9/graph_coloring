@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
-#include <getopt.h>
+#include "klib/ketopt.h"
 
 #include "graph.h"
 #include "utils.h"
@@ -23,23 +23,24 @@ int main(int argc, char** argv) {
     bool CHECK_COLORING = false;
     int max=0, length=0;
 
-    char opt;
-    while ((opt = getopt(argc, argv, "hn:s:r:i:l:12go:GTS:vcm:l:")) != -1) {
-        switch (opt) {
+    ketopt_t opt = KETOPT_INIT;
+    char c;
+    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:12go:GTS:vcm:l:", 0)) != -1) {
+        switch (c) {
 			case 'h':
 				printf("%s", helpString);
 				return 0;
             case 'n':
-                size = atoi(optarg);
+                size = atoi(opt.arg);
                 break;
             case 's':
-                saturation = atof(optarg);
+                saturation = atof(opt.arg);
                 break;
             case 'r':
-                resFname = optarg;
+                resFname = opt.arg;
                 break;
             case 'i':
-                graphInFname = optarg;
+                graphInFname = opt.arg;
                 break;
             case 'v':
                 VERBOSE_LEVEL = 1;
@@ -49,7 +50,7 @@ int main(int argc, char** argv) {
                 break;
             case 'o':
                 STORE_TXT = true;
-                graphOutFname = optarg;
+                graphOutFname = opt.arg;
                 break;
             case 'G':
                 doGreedy = true;
@@ -58,16 +59,16 @@ int main(int argc, char** argv) {
                 doTabu = true;
                 break;
             case 'S':
-                seed = atoi(optarg);
+                seed = atoi(opt.arg);
                 break;
             case 'c':
                 CHECK_COLORING = true;
                 break;
             case 'm':
-                max = atoi(optarg);
+                max = atoi(opt.arg);
                 break;
             case 'l':
-                length = atoi(optarg);
+                length = atoi(opt.arg);
                 break;
         }
     }
