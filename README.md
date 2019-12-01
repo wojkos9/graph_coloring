@@ -11,4 +11,6 @@ Options:\
 -g generate graph dot files\
 -v verbose\
 -o store the graph in file\
--c check if colorings are valid
+-c check if colorings are valid\
+-l set tabu list's length\
+-m set number of iterations\
