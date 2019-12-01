@@ -93,13 +93,16 @@ int main(int argc, char** argv) {
     }
 
     int res_greedy = -1, res_tabu = -1;
+    int mcg = -1, mcts = -1;
     if (doGreedy) {
         cout << "\nGreedy time:" << TIME_OP(res_greedy = g.colorGreedily(), true) << "us\n";
         cout << "Colors: " << res_greedy << endl;
         if (GEN_GRAPH_FILE)
             g.saveGraph("./out/greedy_col.gv");
-        if (CHECK_COLORING)
-            cout << "Greedy OK?: " << g.coloredCorrectly() << endl;
+        if (CHECK_COLORING) {
+            cout << "Greedy OK?: " << g.coloredCorrectly(mcg);
+            cout << ", color check: " << mcg+1 << endl;
+        }
     }
         
     if (doTabu) {
@@ -109,8 +112,10 @@ int main(int argc, char** argv) {
         cout << "Colors: " << res_tabu << endl;
         if (GEN_GRAPH_FILE)
             g.saveGraph("./out/tabu_col.gv");
-        if (CHECK_COLORING)
-            cout << "Tabu OK?: " << g.coloredCorrectly() << endl;
+        if (CHECK_COLORING) {
+            cout << "Tabu OK?: " << g.coloredCorrectly(mcts);
+            cout << ", color check: " << mcts+1 << endl;
+        }
     }
     if (seed != -1)
         cout << "Seed was: " << seed;
