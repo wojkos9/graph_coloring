@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <forward_list>
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <ctime>
 #include <random>
@@ -134,16 +135,16 @@ public:
         return num_edges;
     }
 
-    int colorTabuSearch(int max, int l) {
+    int colorTabuSearch(int max, int len, float alpha=1.0, int f=50) {
         typedef pair<int, int> move_t; // custom type for storing moves in the tabu list
 
         d_cout << reql(1) << BEGIN_DEBUG_STR;
         d_cout << reql(2);
 
-        list<move_t> tabu_list;
+        list<pair<move_t, int>> tabu_list;
         int n = vertices.size();
         vector<int> s(n, -1); // CURRENT COLORING
-        int nc; // current number of colors used
+        int nc = 0; // current number of colors used
 
         // start from greedy coloring
         nc  = colorGreedily(s); 
@@ -187,8 +188,14 @@ public:
                                 // find maximal cost reduction for a move not in the tabu list
                                 if (cr > best_cr || !has_candidate) {
                                     d_cout << "p " << i << " " << ci << "->" << j << " " << cr << endl;
-                                    auto it = find(tabu_list.begin(), tabu_list.end(), move);
-                                    if (it == tabu_list.end()) { // if move is not on TS
+                                    bool found = false;
+                                    for(auto &it : tabu_list) {
+                                        if (it.first == move) {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) { // if move is not on TL
                                         best_move = move;
                                         best_cr = cr;
                                         has_candidate = true;
@@ -202,8 +209,19 @@ public:
                     int i = best_move.first;
                     int old_c = s[i];
                     int new_c = best_move.second;
+                    
+                    int l = f1 * alpha + rand()%f;
 
-                    tabu_list.push_front(move_t(i, old_c)); // prevent from moving back to current state
+                    auto it = tabu_list.begin();
+                    while (it != tabu_list.end()) {
+                        if (--(it->second) == 0) {
+                            it = tabu_list.erase(it);
+                        } else {
+                            it++;
+                        }
+                    }
+
+                    tabu_list.push_front({move_t(i, old_c), l}); // prevent from moving back to current state
                     
                     
                     for(int w : vertices[i]) { // update cost matrix
@@ -223,14 +241,15 @@ public:
                 } else {
                     tabu_list.pop_back(); // if tabu list is blocking all the moves 
                 }
-                if (tabu_list.size() > l) { // if tabu list exceeds max length then remove older moves
+                //FALSE
+                if (false && tabu_list.size() > len) { // FALSEFALSEFALSE if tabu list exceeds max length then remove older moves
                     tabu_list.pop_back();
                 }
                 nb++;
                 ti++;
             }
             if (f1 <= 0) { // if there are no conflicts left
-                d_cout << reql(1) << ti << " " << nc << endl << reql(2);
+                d_cout << reql(1) << ti << " " << nc << " " << tabu_list.size() << " " << endl << reql(2);
                 valid_coloring = vector<int>(s); // store last valid coloring
                 recolor(s, nc-1); // try to reduce the number of colors
                 nc--;

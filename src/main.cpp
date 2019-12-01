@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <ctime>
 #include <sstream>
 #include "klib/ketopt.h"
 
@@ -14,6 +15,7 @@ static bool GEN_GRAPH_FILE = false;
 static bool STORE_TXT = false;
 
 int main(int argc, char** argv) {
+    srand(time(NULL));
     int size = 0;
     float saturation = 0.6f;
     const char *resFname = NULL, *graphInFname = NULL, *graphOutFname = NULL;
@@ -22,11 +24,12 @@ int main(int argc, char** argv) {
     int seed = -1;
 
     bool CHECK_COLORING = false;
-    int max=0, length=0;
+    int max=0, length=0, f=50;
+    float alpha = 1.0f;
 
     ketopt_t opt = KETOPT_INIT;
     char c;
-    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:12go:GTS:vcm:l:", 0)) != -1) {
+    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:12go:GTS:vcm:l:a:f:", 0)) != -1) {
         switch (c) {
 			case 'h':
 				printf("%s", helpString);
@@ -71,6 +74,12 @@ int main(int argc, char** argv) {
             case 'l':
                 length = atoi(opt.arg);
                 break;
+            case 'a':
+                alpha = atof(opt.arg);
+                break;
+            case 'f':
+                f = atoi(opt.arg);
+                break;
         }
     }
 
@@ -110,7 +119,7 @@ int main(int argc, char** argv) {
     if (doTabu) {
         int m = max ? max : 1000;
         int l = length ? length : 10;
-        cout << "\nTabu Search (" << m << ", " << l << ") time: " << TIME_OP(res_tabu = g.colorTabuSearch(m, l), true) << "us\n";
+        cout << "\nTabu Search (" << m << ", " << l << ", " << alpha << ", " << f << ") time: " << TIME_OP(res_tabu = g.colorTabuSearch(m, l), true) << "us\n";
         cout << "Colors: " << res_tabu << endl;
         if (GEN_GRAPH_FILE)
             g.saveGraph("./out/tabu_col.gv");
