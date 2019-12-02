@@ -9,9 +9,11 @@ Data source: \n \
 Options:\n\
 -T\t do Tabu Search\n\
 -G\t do greedy coloring\n\
--r file\t file to store the results in\n\
--g\t generate graph dot file\n\
--a\t number of measurements to take the average from\n\
--v\t verbose\n\
+-g n\t generate graph dot file if solution better than n\n\
+-v\t verbose 1 - print progress\n\
+-vv\t verbose 2 - print everything (matrices etc.) \n\
 -o file\t store the graph in file\n\
--p\t print graph\n"; 
+-p\t print graph\n\
+-m\t set max iterations\n\
+-a\t set alpha\n\
+-f\t set f(g) - max random additional time\n"; 
