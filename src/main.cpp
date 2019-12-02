@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdlib>
+#include <ctime>
 #include <sstream>
+#include <fstream>
 #include "klib/ketopt.h"
 
 #include "graph.h"
@@ -9,11 +11,15 @@
 #include "debug_stream/d_cout.h"
 #include "globals.h"
 
+using namespace std;
+
 int VERBOSE_LEVEL = 0;
 static bool GEN_GRAPH_FILE = false;
 static bool STORE_TXT = false;
 
 int main(int argc, char** argv) {
+    unsigned int seed1 = time(NULL);
+    
     int size = 0;
     float saturation = 0.6f;
     const char *resFname = NULL, *graphInFname = NULL, *graphOutFname = NULL;
@@ -22,11 +28,13 @@ int main(int argc, char** argv) {
     int seed = -1;
 
     bool CHECK_COLORING = false;
-    int max=0, length=0;
+    int max=1000, length=10, f=50;
+    float alpha = 1.0f;
+    int if_better = -1;
 
     ketopt_t opt = KETOPT_INIT;
     char c;
-    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:12go:GTS:vcm:l:", 0)) != -1) {
+    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:12g:o:GTS:vcm:l:a:f:x:z:", 0)) != -1) {
         switch (c) {
 			case 'h':
 				printf("%s", helpString);
@@ -48,6 +56,7 @@ int main(int argc, char** argv) {
                 break;
             case 'g':
                 GEN_GRAPH_FILE = true;
+                if_better = atoi(opt.arg);
                 break;
             case 'o':
                 STORE_TXT = true;
@@ -62,6 +71,9 @@ int main(int argc, char** argv) {
             case 'S':
                 seed = atoi(opt.arg);
                 break;
+            case 'z':
+                seed1 = atoi(opt.arg);
+                break;
             case 'c':
                 CHECK_COLORING = true;
                 break;
@@ -71,8 +83,16 @@ int main(int argc, char** argv) {
             case 'l':
                 length = atoi(opt.arg);
                 break;
+            case 'a':
+                alpha = atof(opt.arg);
+                break;
+            case 'f':
+                f = atoi(opt.arg);
+                break;
         }
     }
+
+    srand(seed1);
 
     Graph g;
 
@@ -108,12 +128,27 @@ int main(int argc, char** argv) {
     }
         
     if (doTabu) {
-        int m = max ? max : 1000;
-        int l = length ? length : 10;
-        cout << "\nTabu Search (" << m << ", " << l << ") time: " << TIME_OP(res_tabu = g.colorTabuSearch(m, l), true) << "us\n";
+        cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << f << ") time: " << TIME_OP(res_tabu = g.colorTabuSearch(max, length, alpha, f), true) << "us\n";
+        cout << "Seed: " << seed1 << endl;
         cout << "Colors: " << res_tabu << endl;
-        if (GEN_GRAPH_FILE)
-            g.saveGraph("./out/tabu_col.gv");
+        if (GEN_GRAPH_FILE && (if_better == -1 || res_tabu < if_better)) {
+            stringstream ss;
+            string fname(graphInFname);
+            int index = fname.find_last_of('/')+1;
+            fname = fname.substr(index, fname.find_last_of('.')-index);
+            // ss << "./out/" << fname;
+            // ss << "_ts_" << res_tabu << ".gv";
+            // g.saveGraph(ss.str().c_str());
+            // cout << "Stored solution in " << ss.str();
+
+            ss = stringstream();
+            ss << "./out/" << fname << "_ts_" << res_tabu << ".txt";
+            ofstream file(ss.str());
+            g.saveColors(file);
+            file.close();
+            cout << "Stored solution in " << ss.str() << endl;
+        }
+            
         if (CHECK_COLORING) {
             cout << "Tabu OK?: " << g.coloredCorrectly(mcts);
             cout << ", color check: " << mcts+1 << endl;
