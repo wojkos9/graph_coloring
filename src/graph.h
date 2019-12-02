@@ -9,6 +9,7 @@
 #include <iostream>
 #include <ctime>
 #include <random>
+#include <fstream>
 
 using namespace std;
 
@@ -68,6 +69,16 @@ class Graph {
 public:
     Graph()  {
         num_edges = 0;
+    }
+
+    const vector<int>& getColors() {
+        return colors;
+    }
+
+    void saveColors(ofstream& file) {
+        for(int i = 0; i < vertices.size(); i++) {
+            file << i+1 << ": " << colors[i] << endl;
+        }
     }
 
     int colorGreedily() {
@@ -135,7 +146,7 @@ public:
         return num_edges;
     }
 
-    int colorTabuSearch(int max, int len, float alpha=1.0, int f=50) {
+    int colorTabuSearch(int max, int len, float alpha, int f) {
         typedef pair<int, int> move_t; // custom type for storing moves in the tabu list
 
         d_cout << reql(1) << BEGIN_DEBUG_STR;
@@ -165,6 +176,7 @@ public:
 
         int nb = 0; // iteration counter
         int ti = 0; // total iterations
+        int start = 0;
         while (nb < max) {
 
             computeCM(cost_mat, s, nc); // compute cost matrix
@@ -173,11 +185,13 @@ public:
             int f1 = costf_mat(s, cost_mat); // f1 = number of conflicts
             d_cout << "f1: " << f1 << endl; // d_cout - custom stream defined in debug_stream.h
 
+            start = rand()%n;
             while (nb < max && f1) {
                 int best_cr = 0; // best cost reduction
                 bool has_candidate = false;
                 move_t best_move;
-                for (int i = 0; i < n; i++) {
+                for (int k = 0; k < n; k++) {
+                    int i = (k+start) % n;
                     int ci = s[i]; // color of vertex i
                     int cost1 = cost_mat[i][ci]; // current number of conflicts for i-th vertex
                     if (cost1) { // if vertex has conflicts
@@ -205,6 +219,14 @@ public:
                         }
                     }
                 }
+                auto it = tabu_list.begin();
+                while (it != tabu_list.end()) {
+                    if (--(it->second) <= 0) {
+                        it = tabu_list.erase(it);
+                    } else {
+                        it++;
+                    }
+                }
                 if (has_candidate) {
                     int i = best_move.first;
                     int old_c = s[i];
@@ -212,15 +234,7 @@ public:
                     
                     int l = f1 * alpha + rand()%f;
 
-                    auto it = tabu_list.begin();
-                    while (it != tabu_list.end()) {
-                        if (--(it->second) == 0) {
-                            it = tabu_list.erase(it);
-                        } else {
-                            it++;
-                        }
-                    }
-
+                    //cout << tabu_list.size() << " " << l << endl;
                     tabu_list.push_front({move_t(i, old_c), l}); // prevent from moving back to current state
                     
                     
