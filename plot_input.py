@@ -7,53 +7,73 @@ plt.ylabel("Liczba kolorów")
 class Limit:
     def __init__(self, action):
         self.min = 0
-        self.max = 10
+        self.max = 0
+        self.fed = False
         self.action = action
-        self.update()
 
     def update(self):
         self.action(self.min, self.max)
 
     def feed(self, val):
-        if val < self.min:
-            self.min = val
-            self.update()
-        elif val > self.max:
-            self.max = val
-            self.update()
+        vmin = val / 1.1
+        vmax = val * 1.1 + 1
+        if not self.fed:
+            self.min = vmin
+            self.max = vmax
+            self.fed = True
+        else:
+            if vmin < self.min:
+                self.min = vmin
+                self.update()
+            elif vmax > self.max:
+                self.max = vmax
+                self.update()
 
 xlimit = Limit(plt.xlim)
 ylimit = Limit(plt.ylim)
 
-plots = ['ro-', 'go-', 'bo-', 'yo-']
+plots = ['r-', 'g.-', 'b.-', 'y.-']
 
-plt.draw()
-plt.pause(0.01) #is necessary for the plot to update for some reason
-
-line = input()
-while line != "__begin__":
-    print(line)
-    line=input()
-
-while True:
+vals = []
+last_vals = []
+plotting = False
+def safe_read():
+    global vals, last_vals, plotting
     try:
         line = input()
-        if line == "__end__":
-            break
-        vals = [float(x) for x in line.split()]
-    except EOFError as e:
-        break
-    t = vals[0]
-    xlimit.feed(t * 1.1)
-    for i, y in enumerate(vals[1:]):
-        ylimit.feed(y * 1.1)
-        # plot the point
-        plt.plot(t, y, plots[i] if i < len(plots) else 'ko-')
-		
+        print(line)
 
-    # draw the plot
-    plt.draw()
-    plt.pause(0.01) #is necessary for the plot to update for some reason
+        if line == "__begin__":
+            plotting = True
+            line = input()
+            vals = [float(x) for x in line.split()]
+            ylimit.feed(vals[1])
+            ylimit.update()
+            print(line)
+            return False
+        elif line == "__end__":
+            plotting = False
+
+        if plotting:
+            last_vals = vals
+            vals = [float(x) for x in line.split()]
+    except EOFError:
+        return False
+    return plotting
+
+
+while True:
+    if safe_read():
+        t = (last_vals[0], vals[0])
+        xlimit.feed(t[1])
+        for i, ys in enumerate(zip(last_vals[1:], vals[1:])):
+            ylimit.feed(ys[1])
+            # plot the point
+            plt.plot(t, ys, plots[i] if i < len(plots) else 'k.-')
+            
+        # redraw the plot
+        plt.draw()
+        plt.pause(0.01) #is necessary for the plot to update for some reason
 
 while True:
     try:

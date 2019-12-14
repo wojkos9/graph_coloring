@@ -263,7 +263,8 @@ public:
                 ti++;
             }
             if (f1 <= 0) { // if there are no conflicts left
-                d_cout << reql(1) << ti << " " << nc << " " << tabu_list.size() << " " << endl << reql(2);
+                d_cout << reql(1) << ti << " " << nc << endl << reql(2);
+                cout.flush();
                 valid_coloring = vector<int>(s); // store last valid coloring
                 recolor(s, nc-1); // try to reduce the number of colors
                 nc--;
