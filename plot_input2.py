@@ -32,49 +32,44 @@ class Limit:
 xlimit = Limit(plt.xlim)
 ylimit = Limit(plt.ylim)
 
-plots = ['r.-', 'g.-', 'b.-', 'y.-']
+plots = ['r-', 'g.-', 'b.-', 'y.-']
 
-vals = {}
-last_vals = {}
-last_i = 0
+vals = []
+last_vals = []
 plotting = False
-finished = False
 def safe_read():
-    global vals, last_vals, plotting, last_i, finished
+    global vals, last_vals, plotting
     try:
         line = input()
         print(line)
 
         if line == "__begin__":
             plotting = True
+            line = input()
+            vals = [float(x) for x in line.split()]
+            ylimit.feed(vals[1])
+            ylimit.update()
+            print(line)
             return False
         elif line == "__end__":
-            finished = True
             plotting = False
 
         if plotting:
-            spl = line.split()
-            last_i = i = int(spl[0])
-            vs = [float(x) for x in spl[1:]]
-
-            if i in vals:
-                last_vals[i] = vals[i]
-                vals[i] = vs
-            else:
-                last_vals[i] = vs
-                vals[i] = vs
-
+            last_vals = vals
+            vals = [float(x) for x in line.split()]
     except EOFError:
         return False
     return plotting
 
-while not finished:
+
+while True:
     if safe_read():
-        lv = last_vals[last_i]
-        v = vals[last_i]
-        t = (lv[0], v[0])
+        t = (last_vals[0], vals[0])
         xlimit.feed(t[1])
-        plt.plot(t, (lv[1], v[1]), plots[last_i] if last_i < len(plots) else 'k.-')
+        for i, ys in enumerate(zip(last_vals[1:], vals[1:])):
+            ylimit.feed(ys[1])
+            # plot the point
+            plt.plot(t, ys, plots[i] if i < len(plots) else 'k.-')
             
         # redraw the plot
         plt.draw()

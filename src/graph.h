@@ -145,13 +145,19 @@ public:
         return num_edges;
     }
 
+    bool setColoring(vector<int> &coloring) {
+        if (coloring.size() != getNumVertices())
+            return false;
+        colors = coloring;
+        return true;
+    }
+
     int colorTabuSearch(int max, int len, float alpha, int f, unsigned int seed) {
         findColoring(max, len, alpha, f, seed, colors);
     }
 
     int findColoring(int max, int len, float alpha, int f, unsigned int seed, vector<int> &colors, int id=0) {
         typedef pair<int, int> move_t; // custom type for storing moves in the tabu list
-
         std::mt19937 gen;
         gen.seed(seed);
         std::uniform_int_distribution<int> rng;

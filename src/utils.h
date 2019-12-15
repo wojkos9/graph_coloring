@@ -14,6 +14,8 @@
 
 #define SWAP(a, b, t) ((t)=(a),(a)=(b),(b)=(t))
 
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+
 static bool _assert_before, _assert_after;
 
 void timerStart();
@@ -115,6 +117,7 @@ struct mparams {
     Graph g;
     int *min_nc;
     vector<int> *min_colors;
+    int *best_seed;
     int mx;
     int length;
     float alpha;
@@ -128,15 +131,14 @@ DWORD WINAPI thread_func(void *params) {
     mparams *ps = (mparams*)params;
     vector<int> colors;
     int nc = ps->g.findColoring(ps->mx, ps->length, ps->alpha, ps->f, ps->seed, colors, ps->id);
-    if (nc < *ps->min_nc) {
-        while (!mut);
-        mut = 0;
-        if (nc < *ps->min_nc) {
-            *ps->min_nc = nc;
-            *ps->min_colors = colors;
-        }
-        mut = 1;
+    while (!mut);
+    mut = 0;
+    if (*ps->min_nc == -1 || nc < *ps->min_nc) {
+        *ps->min_nc = nc;
+        *ps->min_colors = colors;
+        *ps->best_seed = ps->seed;
     }
+    mut = 1;
 }
 
 #define CAPTURE_SMALLEST(func, res) [&](){res = min(res, (func));}

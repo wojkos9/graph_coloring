@@ -3,6 +3,8 @@
 #include <ctime>
 #include <sstream>
 #include <fstream>
+#include <random>
+#include <algorithm> // for max/2
 #include "klib/ketopt.h"
 
 #include "graph.h"
@@ -26,6 +28,7 @@ int main(int argc, char** argv) {
 
     bool doGreedy = false, doTabu = false;
     int seed = -1;
+    bool use_seed = false;
 
     bool CHECK_COLORING = false;
     int max=1000, length=10, f=50;
@@ -72,6 +75,7 @@ int main(int argc, char** argv) {
                 break;
             case 'S':
                 seed = atoi(opt.arg);
+                use_seed = true;
                 break;
             case 'z':
                 seed1 = atoi(opt.arg);
@@ -119,7 +123,7 @@ int main(int argc, char** argv) {
             cout << "Graph saved in " << graphOutFname << endl;
     }
 
-    int res_greedy = -1, res_tabu = -1;
+    int res_greedy = -1;
     int mcg = -1, mcts = -1;
     if (doGreedy) {
         cout << "\nGreedy time:" << TIME_OP(res_greedy = g.colorGreedily(), true) << "us\n";
@@ -134,40 +138,50 @@ int main(int argc, char** argv) {
     int t_wait = 180'000;
         
     if (doTabu) {
-        cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << f << ") time: " << 
-        0 << "us\n";
+        cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << f << ")" << endl;
+        
+        std::mt19937 gen;
+        gen.seed(seed1);
+        std::uniform_int_distribution<int> rng;
 
         HANDLE *threads = new HANDLE[n_threads];
 
-        int min_nc;
+        int min_nc = -1;
         vector<int> min_colors;
+        int best_seed = -1;
         mparams* targsv = new mparams[n_threads];
         //{g, min_nc, min_colors, max, length, alpha, f}
         timerStart();
-        cout << BEGIN_DEBUG_STR << endl;
+        cout << BEGIN_DEBUG_STR;
         for(int i = 0; i < n_threads; i++) {
             mparams &ta = targsv[i];
-            ta.g = g; ta.min_nc = &min_nc; ta.min_colors = &min_colors;
+            ta.g = g; ta.min_nc = &min_nc; ta.min_colors = &min_colors; ta.best_seed = &best_seed;
             ta.mx = max; ta.length = length; ta.alpha = alpha; ta.f = f;
-            ta.seed = rand();
+            ta.seed = use_seed ? seed : rng(gen);
             ta.id = i;
             threads[i] = CREATE_THREAD(thread_func, &targsv[i]);
         }
-        long long exec_t = timerStop();
 
         WaitForMultipleObjects(n_threads, threads, true, t_wait);
-        cout << END_DEBUG_STR << endl;
+        long long exec_t = timerStop();
+        cout << END_DEBUG_STR;
 
-        cout << "Seed: " << seed1 << endl;
+        cout << "Time: " << ((float)exec_t / 1000000.0f) << "s" << endl;
+        cout << "Seed: " << best_seed << endl;
         cout << "Colors: " << min_nc << endl;
-        if (GEN_GRAPH_FILE && (if_better == -1 || res_tabu < if_better)) {
+
+        g.setColoring(min_colors);
+
+        if (GEN_GRAPH_FILE && (if_better == -1 || min_nc < if_better)) {
             stringstream ss;
             string fname(graphInFname);
-            int index = fname.find_last_of('/')+1;
+            int forw = fname.find_last_of('/');
+            int back = fname.find_last_of('\\');
+            int index = MAX(forw, back) +1;
             fname = fname.substr(index, fname.find_last_of('.')-index);
 
             ss = stringstream();
-            ss << "./out/" << fname << "_ts_" << res_tabu << ".txt";
+            ss << "./out/" << fname << "_ts_" << min_nc << ".txt";
             ofstream file(ss.str());
             g.saveColors(file);
             file.close();
@@ -179,7 +193,5 @@ int main(int argc, char** argv) {
             cout << ", color check: " << mcts+1 << endl;
         }
     }
-    if (seed != -1)
-        cout << "Seed was: " << seed;
     return 0;
 }
