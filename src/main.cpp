@@ -32,9 +32,11 @@ int main(int argc, char** argv) {
     float alpha = 1.0f;
     int if_better = -1;
 
+    int n_threads = 1;
+
     ketopt_t opt = KETOPT_INIT;
     char c;
-    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:12g:o:GTS:vcm:l:a:f:x:z:", 0)) != -1) {
+    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:12g:o:GTS:vcm:l:a:f:x:z:j:", 0)) != -1) {
         switch (c) {
 			case 'h':
 				printf("%s", helpString);
@@ -89,6 +91,9 @@ int main(int argc, char** argv) {
             case 'f':
                 f = atoi(opt.arg);
                 break;
+            case 'j':
+                n_threads = atoi(opt.arg);
+                break;
         }
     }
 
@@ -126,20 +131,40 @@ int main(int argc, char** argv) {
             cout << ", color check: " << mcg+1 << endl;
         }
     }
+    int t_wait = 180'000;
         
     if (doTabu) {
-        cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << f << ") time: " << TIME_OP(res_tabu = g.colorTabuSearch(max, length, alpha, f), true) << "us\n";
+        cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << f << ") time: " << 
+        0 << "us\n";
+
+        HANDLE *threads = new HANDLE[n_threads];
+
+        int min_nc;
+        vector<int> min_colors;
+        mparams* targsv = new mparams[n_threads];
+        //{g, min_nc, min_colors, max, length, alpha, f}
+        timerStart();
+        cout << BEGIN_DEBUG_STR << endl;
+        for(int i = 0; i < n_threads; i++) {
+            mparams &ta = targsv[i];
+            ta.g = g; ta.min_nc = &min_nc; ta.min_colors = &min_colors;
+            ta.mx = max; ta.length = length; ta.alpha = alpha; ta.f = f;
+            ta.seed = rand();
+            ta.id = i;
+            threads[i] = CREATE_THREAD(thread_func, &targsv[i]);
+        }
+        long long exec_t = timerStop();
+
+        WaitForMultipleObjects(n_threads, threads, true, t_wait);
+        cout << END_DEBUG_STR << endl;
+
         cout << "Seed: " << seed1 << endl;
-        cout << "Colors: " << res_tabu << endl;
+        cout << "Colors: " << min_nc << endl;
         if (GEN_GRAPH_FILE && (if_better == -1 || res_tabu < if_better)) {
             stringstream ss;
             string fname(graphInFname);
             int index = fname.find_last_of('/')+1;
             fname = fname.substr(index, fname.find_last_of('.')-index);
-            // ss << "./out/" << fname;
-            // ss << "_ts_" << res_tabu << ".gv";
-            // g.saveGraph(ss.str().c_str());
-            // cout << "Stored solution in " << ss.str();
 
             ss = stringstream();
             ss << "./out/" << fname << "_ts_" << res_tabu << ".txt";
@@ -156,6 +181,5 @@ int main(int argc, char** argv) {
     }
     if (seed != -1)
         cout << "Seed was: " << seed;
-    //cout << endl << "Greedy:\t" << res_greedy << endl << "TS:\t" << res_tabu << endl;
     return 0;
 }

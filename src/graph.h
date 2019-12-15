@@ -6,7 +6,6 @@
 #include <forward_list>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <ctime>
 #include <random>
 #include <fstream>
@@ -53,7 +52,7 @@ class Graph {
     void printVec(vector<int> &vec, int m) {
         for (int j=0; j < m; j++)
             d_cout << vec[j] << " ";
-        d_cout << endl;
+        d_cout << dendlu;
     }
     
     void printMat(vector<vector<int>> &mat, int n, int m) {
@@ -61,9 +60,9 @@ class Graph {
             d_cout << i << "| ";
             for (int j=0; j < m; j++)
                 d_cout << mat[i][j] << " ";
-            d_cout << endl;
+            d_cout << dendl;
         }
-        d_cout << endl;
+        d_cout << dendlu;
     }
     
 public:
@@ -108,7 +107,7 @@ public:
         int n = cost_mat.size();
         for(int i = 0; i < n; i++) {
             int cs = cost_mat[i][colors[i]];
-            //d_cout << "conf " << i << " " << cs << endl;
+            //d_cout << "conf " << i << " " << cs << dendlu;
             conflicts += cs;
         }
         return conflicts;
@@ -146,11 +145,16 @@ public:
         return num_edges;
     }
 
-    int colorTabuSearch(int max, int len, float alpha, int f) {
+    int colorTabuSearch(int max, int len, float alpha, int f, unsigned int seed) {
+        findColoring(max, len, alpha, f, seed, colors);
+    }
+
+    int findColoring(int max, int len, float alpha, int f, unsigned int seed, vector<int> &colors, int id=0) {
         typedef pair<int, int> move_t; // custom type for storing moves in the tabu list
 
-        d_cout << reql(1) << BEGIN_DEBUG_STR;
-        d_cout << reql(2);
+        std::mt19937 gen;
+        gen.seed(seed);
+        std::uniform_int_distribution<int> rng;
 
         list<pair<move_t, int>> tabu_list;
         int n = vertices.size();
@@ -160,12 +164,12 @@ public:
         // start from greedy coloring
         nc  = colorGreedily(s); 
         vector<int> valid_coloring(s);
-        printVec(s, n);
+        //printVec(s, n);
 
         // replace the highest color k with k-1
         recolor(s, nc-1); 
         nc--;
-        printVec(s, n);
+        //printVec(s, n);
         
         /* COST MATRIX:
         matrix of size N x NC storing info about 
@@ -180,12 +184,12 @@ public:
         while (nb < max) {
 
             computeCM(cost_mat, s, nc); // compute cost matrix
-            printMat(cost_mat, n, nc);
+            //printMat(cost_mat, n, nc);
 
             int f1 = costf_mat(s, cost_mat); // f1 = number of conflicts
-            d_cout << "f1: " << f1 << endl; // d_cout - custom stream defined in debug_stream.h
+            //d_cout << "f1: " << f1 << dendlu; // d_cout - custom stream defined in debug_stream.h
 
-            start = rand()%n;
+            start = rng(gen) % n;//rand()%n;
             while (nb < max && f1) {
                 int best_cr = 0; // best cost reduction
                 bool has_candidate = false;
@@ -201,7 +205,7 @@ public:
                                 move_t move(i, j);
                                 // find maximal cost reduction for a move not in the tabu list
                                 if (cr > best_cr || !has_candidate) {
-                                    d_cout << "p " << i << " " << ci << "->" << j << " " << cr << endl;
+                                    //d_cout << "p " << i << " " << ci << "->" << j << " " << cr << dendlu;
                                     bool found = false;
                                     for(auto &it : tabu_list) {
                                         if (it.first == move) {
@@ -232,9 +236,9 @@ public:
                     int old_c = s[i];
                     int new_c = best_move.second;
                     
-                    int l = f1 * alpha + rand()%f;
+                    int l = f1 * alpha + rng(gen) % f;
 
-                    //cout << tabu_list.size() << " " << l << endl;
+                    //cout << tabu_list.size() << " " << l << dendlu;
                     tabu_list.push_front({move_t(i, old_c), l}); // prevent from moving back to current state
                     
                     
@@ -242,16 +246,17 @@ public:
                         cost_mat[w][old_c]--;
                         cost_mat[w][new_c]++;
                     }
-                    d_cout << best_move.first << " " << old_c << "->" << new_c << endl;
-                    printMat(cost_mat, n, nc);
+                    //d_cout << best_move.first << " " << old_c << "->" << new_c << dendlu;
+                    //printMat(cost_mat, n, nc);
                     s[i] = new_c; // make the move (change color of i)
-                    d_cout << "AFTER: ";
-                    printVec(s, n);
+                    //d_cout << "AFTER: ";
+                    //printVec(s, n);
+                    //d_cout << unlock;
 
                     // cost function is reduced by twice the cost for 1 vertex, 
                     // because each conflict involves 2 vertices
                     f1 -= 2*best_cr; 
-                    d_cout << "f1: " << f1 << endl;
+                   // d_cout << "f1: " << f1 << dendlu;
                 } else {
                     tabu_list.pop_back(); // if tabu list is blocking all the moves 
                 }
@@ -263,8 +268,7 @@ public:
                 ti++;
             }
             if (f1 <= 0) { // if there are no conflicts left
-                d_cout << reql(1) << ti << " " << nc << endl << reql(2);
-                cout.flush();
+                d_cout << reql(1) << id << " " << ti << " " << nc << dendl << reql(2) << unlock;
                 valid_coloring = vector<int>(s); // store last valid coloring
                 recolor(s, nc-1); // try to reduce the number of colors
                 nc--;
@@ -272,7 +276,6 @@ public:
             }
             
         }
-        d_cout << reql(1) << END_DEBUG_STR;
         colors = vector<int>(valid_coloring);
         return nc+1;
     }
@@ -352,7 +355,7 @@ public:
             num_edges++;
         }
         fclose(file);
-        d_cout << "Loaded\n";
+        d_cout << "Loaded" << dendlu;
     }
 
     bool saveGraph(const char* fname) // stores colored graph in DOT format

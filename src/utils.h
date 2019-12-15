@@ -14,8 +14,6 @@
 
 #define SWAP(a, b, t) ((t)=(a),(a)=(b),(b)=(t))
 
-#define GREATER(v, w, node) (v > (node)->v || (v == (node)->v && w > (node)->w))
-
 static bool _assert_before, _assert_after;
 
 void timerStart();
@@ -112,6 +110,36 @@ long long timeOpLimit(std::function<void(void)> func, std::function<bool(void)> 
 #define LAST_OP_SUCCESSFUL !_assert_before & _assert_after
 
 #define NO_ASSERT false
+
+struct mparams {
+    Graph g;
+    int *min_nc;
+    vector<int> *min_colors;
+    int mx;
+    int length;
+    float alpha;
+    int f;
+    unsigned int seed;
+    int id;
+};
+
+bool mut = 1;
+DWORD WINAPI thread_func(void *params) {
+    mparams *ps = (mparams*)params;
+    vector<int> colors;
+    int nc = ps->g.findColoring(ps->mx, ps->length, ps->alpha, ps->f, ps->seed, colors, ps->id);
+    if (nc < *ps->min_nc) {
+        while (!mut);
+        mut = 0;
+        if (nc < *ps->min_nc) {
+            *ps->min_nc = nc;
+            *ps->min_colors = colors;
+        }
+        mut = 1;
+    }
+}
+
+#define CAPTURE_SMALLEST(func, res) [&](){res = min(res, (func));}
 
 #define wait(msg) (printf("%s\n", msg), getchar())
 
