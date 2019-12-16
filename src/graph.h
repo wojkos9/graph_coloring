@@ -13,7 +13,6 @@
 using namespace std;
 
 #include "debug_stream/d_cout.h"
-#include "globals.h"
 
 class Graph {
     vector<list<int>> vertices;
@@ -52,7 +51,7 @@ class Graph {
     void printVec(vector<int> &vec, int m) {
         for (int j=0; j < m; j++)
             d_cout << vec[j] << " ";
-        d_cout << dendlu;
+        d_cout << dendl;
     }
     
     void printMat(vector<vector<int>> &mat, int n, int m) {
@@ -62,7 +61,7 @@ class Graph {
                 d_cout << mat[i][j] << " ";
             d_cout << dendl;
         }
-        d_cout << dendlu;
+        d_cout << dendl;
     }
     
 public:
@@ -107,7 +106,7 @@ public:
         int n = cost_mat.size();
         for(int i = 0; i < n; i++) {
             int cs = cost_mat[i][colors[i]];
-            //d_cout << "conf " << i << " " << cs << dendlu;
+            //d_cout << "conf " << i << " " << cs << dendl;
             conflicts += cs;
         }
         return conflicts;
@@ -259,7 +258,9 @@ public:
                 ti++;
             }
             if (f1 <= 0) { // if there are no conflicts left
-                d_cout << reql(1) << id << " " << ti << " " << nc << dendl << reql(2) << unlock;
+                d_cout.lock();
+                d_cout << id << " " << ti << " " << nc << dendl;
+                d_cout.unlock();
                 valid_coloring = vector<int>(s); // store last valid coloring
                 recolor(s, nc-1); // try to reduce the number of colors
                 nc--;
@@ -346,7 +347,7 @@ public:
             num_edges++;
         }
         fclose(file);
-        d_cout << "Loaded" << dendlu;
+        d_cout << "Loaded" << dendl;
     }
 
     bool saveGraph(const char* fname) // stores colored graph in DOT format

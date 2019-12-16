@@ -4,22 +4,23 @@
 #include <sstream>
 #include <fstream>
 #include <random>
+#include <thread>
 #include "klib/ketopt.h"
 
 #include "graph.h"
 #include "utils.h"
 #include "constants.h"
 #include "debug_stream/d_cout.h"
-#include "globals.h"
 
 using namespace std;
 
-int VERBOSE_LEVEL = 0;
-static bool GEN_GRAPH_FILE = false;
-static bool STORE_TXT = false;
-
 int main(int argc, char** argv) {
     unsigned int seed1 = time(NULL);
+
+    
+    bool GEN_GRAPH_FILE = false;
+    bool STORE_TXT = false;
+    bool CHECK_COLORING = false;
     
     int size = 0;
     float saturation = 0.6f;
@@ -29,7 +30,7 @@ int main(int argc, char** argv) {
     int seed = -1;
     bool use_seed = false;
 
-    bool CHECK_COLORING = false;
+    
     int max=1000, length=10, f=50;
     float alpha = 1.0f;
     int if_better = -1;
@@ -38,7 +39,7 @@ int main(int argc, char** argv) {
 
     ketopt_t opt = KETOPT_INIT;
     char c;
-    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:12g:o:GTS:vcm:l:a:f:x:z:j:", 0)) != -1) {
+    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:g:o:GTS:vcm:l:a:f:z:j:", 0)) != -1) {
         switch (c) {
 			case 'h':
 				printf("%s", helpString);
@@ -122,19 +123,18 @@ int main(int argc, char** argv) {
             cout << "Graph saved in " << graphOutFname << endl;
     }
 
-    int res_greedy = -1;
-    int mcg = -1, mcts = -1;
     if (doGreedy) {
+        int res_greedy;
         cout << "\nGreedy time:" << TIME_OP(res_greedy = g.colorGreedily(), true) << "us\n";
         cout << "Colors: " << res_greedy << endl;
         if (GEN_GRAPH_FILE)
             g.saveGraph("./out/greedy_col.gv");
         if (CHECK_COLORING) {
-            cout << "Greedy OK?: " << g.coloredCorrectly(mcg);
-            cout << ", color check: " << mcg+1 << endl;
+            int nc;
+            cout << "Greedy OK?: " << g.coloredCorrectly(nc);
+            cout << ", color check: " << nc+1 << endl;
         }
     }
-    int t_wait = 180'000;
         
     if (doTabu) {
         cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << f << ")" << endl;
@@ -143,25 +143,22 @@ int main(int argc, char** argv) {
         gen.seed(seed1);
         std::uniform_int_distribution<int> rng;
 
-        HANDLE *threads = new HANDLE[n_threads];
-
         int min_nc = -1;
-        vector<int> min_colors;
         int best_seed = -1;
-        mparams* targsv = new mparams[n_threads];
-        //{g, min_nc, min_colors, max, length, alpha, f}
+        vector<int> min_colors;
+        
         timerStart();
         cout << BEGIN_DEBUG_STR;
-        for(int i = 0; i < n_threads; i++) {
-            mparams &ta = targsv[i];
-            ta.g = g; ta.min_nc = &min_nc; ta.min_colors = &min_colors; ta.best_seed = &best_seed;
-            ta.mx = max; ta.length = length; ta.alpha = alpha; ta.f = f;
-            ta.seed = use_seed ? seed : rng(gen);
-            ta.id = i;
-            threads[i] = CREATE_THREAD(thread_func, &targsv[i]);
-        }
+        vector<thread> threads;
 
-        WaitForMultipleObjects(n_threads, threads, true, t_wait);
+        for(int i = 0; i < n_threads; i++) {
+            unsigned int seed_tmp = use_seed ? seed : rng(gen);;
+            threads.push_back(thread(thread_f, &g, &min_nc, &min_colors, &best_seed, 
+                                     max, length, alpha, f, seed_tmp, i));
+        }
+        for (thread &t : threads) {
+            t.join();
+        }
         long long exec_t = timerStop();
         cout << END_DEBUG_STR;
 
@@ -172,14 +169,8 @@ int main(int argc, char** argv) {
         g.setColoring(min_colors);
 
         if (GEN_GRAPH_FILE && (if_better == -1 || min_nc < if_better)) {
+            string fname = strip_fname(graphInFname);
             stringstream ss;
-            string fname(graphInFname);
-            int forw = fname.find_last_of('/');
-            int back = fname.find_last_of('\\');
-            int index = MAX(forw, back) +1;
-            fname = fname.substr(index, fname.find_last_of('.')-index);
-
-            ss = stringstream();
             ss << "./out/" << fname << "_ts_" << min_nc << ".txt";
             ofstream file(ss.str());
             g.saveColors(file);
@@ -188,8 +179,9 @@ int main(int argc, char** argv) {
         }
             
         if (CHECK_COLORING) {
-            cout << "Tabu OK?: " << g.coloredCorrectly(mcts);
-            cout << ", color check: " << mcts+1 << endl;
+            int nc;
+            cout << "Tabu OK?: " << g.coloredCorrectly(nc);
+            cout << ", color check: " << nc+1 << endl;
         }
     }
     return 0;

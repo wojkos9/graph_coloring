@@ -141,13 +141,38 @@ DWORD WINAPI thread_func(void *params) {
     mut = 1;
 }
 
-#define CAPTURE_SMALLEST(func, res) [&](){res = min(res, (func));}
+#include <mutex>
+using namespace std;
+mutex mu;
+void thread_f(Graph *g,
+    int *min_nc,
+    vector<int> *min_colors,
+    int *best_seed,
+    int mx,
+    int length,
+    float alpha,
+    int f,
+    unsigned int seed,
+    int id) {
+        vector<int> colors;
+        int nc = g->findColoring(mx, length, alpha, f, seed, colors, id);
+        mu.lock();
+        if (*min_nc == -1 || nc < *min_nc) {
+            *min_nc = nc;
+            *min_colors = colors;
+            *best_seed = seed;
+        }
+        mu.unlock();
 
-#define wait(msg) (printf("%s\n", msg), getchar())
+}
 
-#define confirm(command) printf("%s\n", #command); command
-
-#define mprintf(_FNAME, ...) (printf(__VA_ARGS__), fprintf(_FNAME, __VA_ARGS__))
+string strip_fname(string fname) {
+    stringstream ss;
+    int forw = fname.find_last_of('/');
+    int back = fname.find_last_of('\\');
+    int index = MAX(forw, back) +1;
+    return fname.substr(index, fname.find_last_of('.')-index);
+}
 
 std::default_random_engine gen(time(NULL));
 
