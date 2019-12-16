@@ -4,7 +4,6 @@
 #include <sstream>
 #include <fstream>
 #include <random>
-#include <algorithm> // for max/2
 #include "klib/ketopt.h"
 
 #include "graph.h"

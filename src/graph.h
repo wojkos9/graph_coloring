@@ -159,7 +159,7 @@ public:
     int findColoring(int max, int len, float alpha, int f, unsigned int seed, vector<int> &colors, int id=0) {
         typedef pair<int, int> move_t; // custom type for storing moves in the tabu list
         std::mt19937 gen;
-        gen.seed(seed);
+        gen.seed(seed); // 
         std::uniform_int_distribution<int> rng;
 
         list<pair<move_t, int>> tabu_list;
@@ -175,7 +175,6 @@ public:
         // replace the highest color k with k-1
         recolor(s, nc-1); 
         nc--;
-        //printVec(s, n);
         
         /* COST MATRIX:
         matrix of size N x NC storing info about 
@@ -190,10 +189,8 @@ public:
         while (nb < max) {
 
             computeCM(cost_mat, s, nc); // compute cost matrix
-            //printMat(cost_mat, n, nc);
 
             int f1 = costf_mat(s, cost_mat); // f1 = number of conflicts
-            //d_cout << "f1: " << f1 << dendlu; // d_cout - custom stream defined in debug_stream.h
 
             start = rng(gen) % n;//rand()%n;
             while (nb < max && f1) {
@@ -211,7 +208,6 @@ public:
                                 move_t move(i, j);
                                 // find maximal cost reduction for a move not in the tabu list
                                 if (cr > best_cr || !has_candidate) {
-                                    //d_cout << "p " << i << " " << ci << "->" << j << " " << cr << dendlu;
                                     bool found = false;
                                     for(auto &it : tabu_list) {
                                         if (it.first == move) {
@@ -231,7 +227,7 @@ public:
                 }
                 auto it = tabu_list.begin();
                 while (it != tabu_list.end()) {
-                    if (--(it->second) <= 0) {
+                    if (--(it->second) <= 0) { // if time left on tabu list reached 0
                         it = tabu_list.erase(it);
                     } else {
                         it++;
@@ -242,9 +238,8 @@ public:
                     int old_c = s[i];
                     int new_c = best_move.second;
                     
-                    int l = f1 * alpha + rng(gen) % f;
+                    int l = f1 * alpha + rng(gen) % f; // time to stay on tabu list (number of iterations)
 
-                    //cout << tabu_list.size() << " " << l << dendlu;
                     tabu_list.push_front({move_t(i, old_c), l}); // prevent from moving back to current state
                     
                     
@@ -252,23 +247,13 @@ public:
                         cost_mat[w][old_c]--;
                         cost_mat[w][new_c]++;
                     }
-                    //d_cout << best_move.first << " " << old_c << "->" << new_c << dendlu;
-                    //printMat(cost_mat, n, nc);
                     s[i] = new_c; // make the move (change color of i)
-                    //d_cout << "AFTER: ";
-                    //printVec(s, n);
-                    //d_cout << unlock;
 
                     // cost function is reduced by twice the cost for 1 vertex, 
                     // because each conflict involves 2 vertices
-                    f1 -= 2*best_cr; 
-                   // d_cout << "f1: " << f1 << dendlu;
+                    f1 -= 2*best_cr;
                 } else {
                     tabu_list.pop_back(); // if tabu list is blocking all the moves 
-                }
-                //FALSE
-                if (false && tabu_list.size() > len) { // FALSEFALSEFALSE if tabu list exceeds max length then remove older moves
-                    tabu_list.pop_back();
                 }
                 nb++;
                 ti++;
