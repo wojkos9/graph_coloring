@@ -152,7 +152,7 @@ public:
     }
 
     int colorTabuSearch(int max, int len, float alpha, int f, unsigned int seed) {
-        findColoring(max, len, alpha, f, seed, colors);
+        return findColoring(max, len, alpha, f, seed, colors);
     }
 
     int findColoring(int max, int len, float alpha, int f, unsigned int seed, vector<int> &colors, int id=0) {

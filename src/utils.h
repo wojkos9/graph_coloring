@@ -5,6 +5,9 @@
 #include <ctime>
 #include <functional>
 
+#include <mutex>
+using namespace std;
+
 #ifdef __linux__
 #include <unistd.h>
 #define Sleep(t) usleep(t * 1000)
@@ -113,36 +116,7 @@ long long timeOpLimit(std::function<void(void)> func, std::function<bool(void)> 
 
 #define NO_ASSERT false
 
-struct mparams {
-    Graph g;
-    int *min_nc;
-    vector<int> *min_colors;
-    int *best_seed;
-    int mx;
-    int length;
-    float alpha;
-    int f;
-    unsigned int seed;
-    int id;
-};
 
-bool mut = 1;
-DWORD WINAPI thread_func(void *params) {
-    mparams *ps = (mparams*)params;
-    vector<int> colors;
-    int nc = ps->g.findColoring(ps->mx, ps->length, ps->alpha, ps->f, ps->seed, colors, ps->id);
-    while (!mut);
-    mut = 0;
-    if (*ps->min_nc == -1 || nc < *ps->min_nc) {
-        *ps->min_nc = nc;
-        *ps->min_colors = colors;
-        *ps->best_seed = ps->seed;
-    }
-    mut = 1;
-}
-
-#include <mutex>
-using namespace std;
 mutex mu;
 void thread_f(Graph *g,
     int *min_nc,
