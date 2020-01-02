@@ -7,5 +7,5 @@ else
 	CFLAGS += -pthread
 endif
 
-main:
+main: src/*
 	$(CXX) -omain src/main.cpp src/debug_stream/debug_stream.cpp $(CFLAGS)
