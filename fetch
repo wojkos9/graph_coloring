@@ -1,0 +1,10 @@
+#!/bin/bash
+for gr in $@; do
+    if [[ "$gr" == *.b ]]; then
+        wget --no-check-certificate mat.gsia.cmu.edu/COLOR/instances/$gr -O instances/$gr
+        translator/bin2asc instances/$gr
+        rm instances/$gr
+    else
+        wget --no-check-certificate mat.gsia.cmu.edu/COLOR/instances/$gr -O - | sed '/^c.*$/d;s/p .* \(.*\) .*$/\1/;s/^e //' > instances/$gr
+    fi;
+done;
