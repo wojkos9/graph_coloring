@@ -9,11 +9,13 @@ Data source:\
 Options:\
 -T do Tabu Search\
 -G do greedy coloring\
--g n generate graph dot file if solution better than n\
+-c check each generated coloring\
+-b n generate graph dot file if solution better than n\
 -v verbose 1 - print progress\
--vv verbose 2 - print everything (matrices etc.) \
+-vv (not implemented) verbose 2 - print everything (matrices etc.) \
 -o file store the graph in file\
--p print graph\
 -m set max iterations\
 -a set alpha\
--f set f(g) - max random additional time
+-g set g - max random additional time\
+-j specify the number of parallel solvers\
+-p use a preset with the given index, defined in preset.h
