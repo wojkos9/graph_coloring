@@ -2,3 +2,5 @@ main.exe
 main
 .*
 !/.gitignore
+translator/bin2asc
+translator/bin2asc.exe
