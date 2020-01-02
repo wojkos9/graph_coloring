@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <vector>
 #include <list>
 #include <algorithm>
@@ -13,6 +14,7 @@
 using namespace std;
 
 #include "debug_stream/d_cout.h"
+#include "utils.h"
 
 class Graph {
     vector<list<int>> vertices;
@@ -152,11 +154,17 @@ public:
     }
 
     int colorTabuSearch(int max, int len, float alpha, int f, unsigned int seed) {
-        return findColoring(max, len, alpha, f, seed, colors);
+        return findColoring({max, len, alpha, f}, seed, colors);
     }
 
-    int findColoring(int max, int len, float alpha, int f, unsigned int seed, vector<int> &colors, int id=0) {
+    int findColoring(tabu_params_t params, unsigned int seed, vector<int> &colors, int id=0) {
         typedef pair<int, int> move_t; // custom type for storing moves in the tabu list
+
+        int max = params.m;
+        int length = params.l;
+        float alpha = params.alpha;
+        int g = params.g;
+
         std::mt19937 gen;
         gen.seed(seed); // 
         std::uniform_int_distribution<int> rng;
@@ -237,7 +245,7 @@ public:
                     int old_c = s[i];
                     int new_c = best_move.second;
                     
-                    int l = f1 * alpha + rng(gen) % f; // time to stay on tabu list (number of iterations)
+                    int l = f1 * alpha + rng(gen) % g; // time to stay on tabu list (number of iterations)
 
                     tabu_list.push_front({move_t(i, old_c), l}); // prevent from moving back to current state
                     

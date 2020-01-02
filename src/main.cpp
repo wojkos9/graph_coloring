@@ -5,139 +5,77 @@
 #include <fstream>
 #include <random>
 #include <thread>
-#include "klib/ketopt.h"
+#include <mutex>
+
 
 #include "graph.h"
 #include "utils.h"
+#include "timing.h"
 #include "constants.h"
 #include "debug_stream/d_cout.h"
 
+#include "parser.h"
+
 using namespace std;
+
+mutex mu;
+void thread_f(Graph *g, int *min_nc, vector<int> *min_colors, int *best_seed, tabu_params_t params, unsigned int seed, int id) {
+        vector<int> colors;
+        int nc = g->findColoring(params, seed, colors, id);
+        mu.lock();
+        if (*min_nc == -1 || nc < *min_nc) {
+            *min_nc = nc;
+            *min_colors = colors;
+            *best_seed = seed;
+        }
+        mu.unlock();
+}
+
+
+Graph graph;
+preset_t preset;
 
 int main(int argc, char** argv) {
     unsigned int seed1 = time(NULL);
 
+    preset = parse_args(argc, argv);
     
-    bool GEN_GRAPH_FILE = false;
-    bool STORE_TXT = false;
-    bool CHECK_COLORING = false;
-    
-    int size = 0;
-    float saturation = 0.6f;
-    const char *resFname = NULL, *graphInFname = NULL, *graphOutFname = NULL;
 
-    bool doGreedy = false, doTabu = false;
-    int seed = -1;
-    bool use_seed = false;
-
-    
-    int max=1000, length=10, f=50;
-    float alpha = 1.0f;
-    int if_better = -1;
-
-    int n_threads = 1;
-
-    ketopt_t opt = KETOPT_INIT;
-    char c;
-    while ((c = ketopt(&opt, argc, argv, 1, "hn:s:r:i:l:g:o:GTS:vcm:l:a:f:z:j:", 0)) != -1) {
-        switch (c) {
-			case 'h':
-				printf("%s", helpString);
-				return 0;
-            case 'n':
-                size = atoi(opt.arg);
-                break;
-            case 's':
-                saturation = atof(opt.arg);
-                break;
-            case 'r':
-                resFname = opt.arg;
-                break;
-            case 'i':
-                graphInFname = opt.arg;
-                break;
-            case 'v':
-                d_cout.level++;
-                break;
-            case 'g':
-                GEN_GRAPH_FILE = true;
-                if_better = atoi(opt.arg);
-                break;
-            case 'o':
-                STORE_TXT = true;
-                graphOutFname = opt.arg;
-                break;
-            case 'G':
-                doGreedy = true;
-                break;
-            case 'T':
-                doTabu = true;
-                break;
-            case 'S':
-                seed = atoi(opt.arg);
-                use_seed = true;
-                break;
-            case 'z':
-                seed1 = atoi(opt.arg);
-                break;
-            case 'c':
-                CHECK_COLORING = true;
-                break;
-            case 'm':
-                max = atoi(opt.arg);
-                break;
-            case 'l':
-                length = atoi(opt.arg);
-                break;
-            case 'a':
-                alpha = atof(opt.arg);
-                break;
-            case 'f':
-                f = atoi(opt.arg);
-                break;
-            case 'j':
-                n_threads = atoi(opt.arg);
-                break;
-        }
-    }
-
-    srand(seed1);
-
-    Graph g;
-
-    if (graphInFname)
-        g.fromFile(graphInFname);
-    else if (size) {
-        if (seed == -1)
-            seed = g.randomize(size, saturation);
-        else
-            g.randomize(size, saturation, seed);
+    if (preset.actions & FROM_FILE)
+        graph.fromFile(preset.f_graph_in);
+    else if (preset.size) {
+        graph.randomize(preset.size, preset.saturation);
     } else {
         cerr << "Too few parameters.\n";
         exit(-1);
     }
-    cout << "Loaded graph with " << g.getNumVertices() << " vertices and " << g.getNumEdges() << " edges\n";
+    cout << "Loaded graph with " << graph.getNumVertices() << " vertices and " << graph.getNumEdges() << " edges\n";
 
-    if (STORE_TXT && graphOutFname) {
-        if (g.saveToTxt(graphOutFname))
-            cout << "Graph saved in " << graphOutFname << endl;
+    if (preset.actions & STORE_TXT && preset.f_graph_out) {
+        if (graph.saveToTxt(preset.f_graph_out))
+            cout << "Graph saved in " << preset.f_graph_out << endl;
     }
 
-    if (doGreedy) {
+    if (preset.actions & DO_GREEDY) {
         int res_greedy;
-        cout << "\nGreedy time:" << TIME_OP(res_greedy = g.colorGreedily(), true) << "us\n";
+        cout << "\nGreedy time:" << TIME_OP(res_greedy = graph.colorGreedily(), true) << "us\n";
         cout << "Colors: " << res_greedy << endl;
-        if (GEN_GRAPH_FILE)
-            g.saveGraph("./out/greedy_col.gv");
-        if (CHECK_COLORING) {
+        if (preset.actions & GEN_GRAPH_FILE)
+            graph.saveGraph("./out/greedy_col.gv");
+        if (preset.actions & CHECK_COLORING) {
             int nc;
-            cout << "Greedy OK?: " << g.coloredCorrectly(nc);
+            cout << "Greedy OK?: " << graph.coloredCorrectly(nc);
             cout << ", color check: " << nc+1 << endl;
         }
     }
         
-    if (doTabu) {
-        cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << f << ")" << endl;
+    if (preset.actions & DO_TABU) {
+        int max = preset.tabu_params.m;
+        int length = preset.tabu_params.l;
+        float alpha = preset.tabu_params.alpha;
+        int g = preset.tabu_params.g;
+        cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << g << ")" << endl;
+        cout << "Threads:" << preset.n_threads << endl;
         
         std::mt19937 gen;
         gen.seed(seed1);
@@ -151,10 +89,10 @@ int main(int argc, char** argv) {
         cout << BEGIN_DEBUG_STR;
         vector<thread> threads;
 
-        for(int i = 0; i < n_threads; i++) {
-            unsigned int seed_tmp = use_seed ? seed : rng(gen);;
-            threads.push_back(thread(thread_f, &g, &min_nc, &min_colors, &best_seed, 
-                                     max, length, alpha, f, seed_tmp, i));
+        for(int i = 0; i < preset.n_threads; i++) {
+            unsigned int seed_tmp = (preset.actions & USE_CUSTOM_SEED) ? preset.seed : rng(gen);
+            threads.push_back(thread(thread_f, &graph, &min_nc, &min_colors, &best_seed, 
+                                     preset.tabu_params, seed_tmp, i));
         }
         for (thread &t : threads) {
             t.join();
@@ -166,22 +104,25 @@ int main(int argc, char** argv) {
         cout << "Seed: " << best_seed << endl;
         cout << "Colors: " << min_nc << endl;
 
-        g.setColoring(min_colors);
-
-        if (GEN_GRAPH_FILE && (if_better == -1 || min_nc < if_better)) {
-            string fname = strip_fname(graphInFname);
+        graph.setColoring(min_colors);
+            
+        if (preset.actions & CHECK_COLORING) {
+            int nc;
+            cout << "Tabu OK?: " << graph.coloredCorrectly(nc);
+            cout << ", color check: " << nc+1 << endl;
+        }
+        if (preset.actions & GEN_GRAPH_FILE && (preset.actions & FORCE_GEN || min_nc < preset.value_to_improve)) {
+            string fname = strip_fname(preset.f_graph_in);
             stringstream ss;
             ss << "./out/" << fname << "_ts_" << min_nc << ".txt";
             ofstream file(ss.str());
-            g.saveColors(file);
+            graph.saveColors(file);
             file.close();
             cout << "Stored solution in " << ss.str() << endl;
-        }
-            
-        if (CHECK_COLORING) {
-            int nc;
-            cout << "Tabu OK?: " << g.coloredCorrectly(nc);
-            cout << ", color check: " << nc+1 << endl;
+        } else {
+            ofstream file(".last_ts");
+            graph.saveColors(file);
+            file.close();
         }
     }
     return 0;
