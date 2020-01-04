@@ -259,7 +259,7 @@ public:
                     // cost function is reduced by twice the cost for 1 vertex, 
                     // because each conflict involves 2 vertices
                     f1 -= 2*best_cr;
-                } else {
+                } else if (tabu_list.empty() != true) {
                     tabu_list.pop_back(); // if tabu list is blocking all the moves 
                 }
                 nb++;
