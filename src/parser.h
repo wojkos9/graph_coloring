@@ -12,7 +12,7 @@
 preset_t parse_args(int argc, char** argv) {
     ketopt_t opt;
     char c;
-    preset_t preset = presets[0];
+    preset_t preset = presets[1];
 
     const char *ostr = "hp:n:s:i:l:b:o:GTS:vcm:l:a:g:j:";
 
@@ -58,7 +58,8 @@ preset_t parse_args(int argc, char** argv) {
                     preset.value_to_improve = atoi(opt.arg);
                 break;
             case 'o':
-                preset.actions = STORE_TXT; //sic
+                preset.actions |= STORE_TXT;
+                preset.actions &= ~(DO_TABU | DO_GREEDY);
                 preset.f_graph_out = opt.arg;
                 break;
             case 'G':
