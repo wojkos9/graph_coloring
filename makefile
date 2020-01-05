@@ -8,4 +8,4 @@ else
 endif
 
 main: src/*
-	$(CXX) -omain src/main.cpp src/debug_stream/debug_stream.cpp $(CFLAGS)
+	$(CXX) -omain src/main.cpp src/debug_stream/debug_stream.cpp -O3 $(CFLAGS)
