@@ -201,7 +201,7 @@ public:
 
             start = rng(gen) % n;//rand()%n;
             while (nb < max && f1) {
-                int best_cr = 0; // best cost reduction
+                int best_cr = -1; // best cost reduction
                 bool has_candidate = false;
                 move_t best_move;
                 for (int k = 0; k < n; k++) {
