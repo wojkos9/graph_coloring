@@ -124,14 +124,16 @@ public:
         }
     }
 
-    bool coloredCorrectly(int &mc) {
+    bool coloredCorrectly(int &mc, int &ne) {
         mc = 0;
+        ne = 0;
         for (int v=0; v < vertices.size(); v++) {
             if (colors[v] < 0)
                 return false;
             if (colors[v] > mc)
                 mc = colors[v];
             for(int w : vertices[v]) {
+                ne++;
                 if (colors[v] == colors[w])
                     return false;
             }

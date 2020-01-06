@@ -63,9 +63,9 @@ int main(int argc, char** argv) {
         if (preset.actions & GEN_GRAPH_FILE)
             graph.saveGraph("./out/greedy_col.gv");
         if (preset.actions & CHECK_COLORING) {
-            int nc;
-            cout << "Greedy OK?: " << graph.coloredCorrectly(nc);
-            cout << ", color check: " << nc+1 << endl;
+            int nc, ne;
+            cout << "Greedy OK?: " << graph.coloredCorrectly(nc, ne);
+            cout << ", color check: " << nc+1 << " 2*edges: " << ne << endl;
         }
     }
         
@@ -107,9 +107,9 @@ int main(int argc, char** argv) {
         graph.setColoring(min_colors);
             
         if (preset.actions & CHECK_COLORING) {
-            int nc;
-            cout << "Tabu OK?: " << graph.coloredCorrectly(nc);
-            cout << ", color check: " << nc+1 << endl;
+            int nc, ne;
+            cout << "Tabu OK?: " << graph.coloredCorrectly(nc, ne);
+            cout << ", color check: " << nc+1 << " 2*edges: " << ne << endl;
         }
         if (preset.actions & GEN_GRAPH_FILE && (preset.actions & FORCE_GEN || min_nc < preset.value_to_improve)) {
             string fname = strip_fname(preset.f_graph_in);
