@@ -6,6 +6,7 @@
 #include <random>
 #include <thread>
 #include <mutex>
+#include <chrono>
 
 
 #include "graph.h"
@@ -15,6 +16,7 @@
 #include "debug_stream/d_cout.h"
 
 #include "parser.h"
+
 
 using namespace std;
 
@@ -36,36 +38,51 @@ Graph graph;
 preset_t preset;
 
 int main(int argc, char** argv) {
-    unsigned int seed1 = time(NULL);
+    unsigned long seed1 = get_now_ns();
 
     preset = parse_args(argc, argv);
-    
+    if (preset.seed1)
+        seed1 = preset.seed1;
 
     if (preset.actions & FROM_FILE)
-        graph.fromFile(preset.f_graph_in);
+        graph.fromFile(preset.f_graph_in, !preset.double_entries);
     else if (preset.size) {
-        graph.randomize(preset.size, preset.saturation);
+        if (preset.n_edges > 0)
+            graph.randomize_n_m(preset.size, preset.n_edges, seed1);
+        else if (0.0f <= preset.saturation && preset.saturation <= 1.0f)
+            graph.randomize_n_sat(preset.size, preset.saturation, seed1);
+        else {
+            cerr << "Invalid parameters.\n";
+            exit(-1);
+        }
     } else {
         cerr << "Too few parameters.\n";
         exit(-1);
     }
-    cout << "Loaded graph with " << graph.getNumVertices() << " vertices and " << graph.getNumEdges() << " edges\n";
+    ccout(0) << "Loaded graph with " << graph.getNumVertices() << " vertices and " << graph.getNumEdges() << " edges\n";
 
     if (preset.actions & STORE_TXT && preset.f_graph_out) {
         if (graph.saveToTxt(preset.f_graph_out))
-            cout << "Graph saved in " << preset.f_graph_out << endl;
+            ccout(0) << "Graph saved in " << preset.f_graph_out << endl;
     }
 
+    int res_greedy;
+    int res_tabu;
+
     if (preset.actions & DO_GREEDY) {
-        int res_greedy;
-        cout << "\nGreedy time:" << TIME_OP(res_greedy = graph.colorGreedily(), true) << "us\n";
-        cout << "Colors: " << res_greedy << endl;
+        auto exec_time = TIME_OP(res_greedy = graph.colorGreedily(), true);
+        ccout(0) << "\nGreedy time:" << exec_time << "us\n";
+        ccout(0) << "Colors: " << res_greedy << endl;
         if (preset.actions & GEN_GRAPH_FILE)
             graph.saveGraph("./out/greedy_col.gv");
         if (preset.actions & CHECK_COLORING) {
             int nc, ne;
-            cout << "Greedy OK?: " << graph.coloredCorrectly(nc, ne);
-            cout << ", color check: " << nc+1 << " 2*edges: " << ne << endl;
+            bool cc = graph.coloredCorrectly(nc, ne);
+            if (!cc) {
+                cerr << "WARNING: Graph incorrectly colored\n";
+            }
+            ccout(0) << "Greedy OK?: " << cc;
+            ccout(0) << ", color check: " << nc+1 << " 2*edges: " << ne << endl;
         }
     }
         
@@ -74,8 +91,8 @@ int main(int argc, char** argv) {
         int length = preset.tabu_params.l;
         float alpha = preset.tabu_params.alpha;
         int g = preset.tabu_params.g;
-        cout << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << g << ")" << endl;
-        cout << "Threads:" << preset.n_threads << endl;
+        ccout(0) << "\nTabu Search (" << max << ", " << length << ", " << alpha << ", " << g << ")" << endl;
+        ccout(0) << "Threads:" << preset.n_threads << endl;
         
         std::mt19937 gen;
         gen.seed(seed1);
@@ -86,7 +103,7 @@ int main(int argc, char** argv) {
         vector<int> min_colors;
         
         timerStart();
-        cout << BEGIN_DEBUG_STR;
+        ccout(0) << BEGIN_DEBUG_STR;
         vector<thread> threads;
 
         for(int i = 0; i < preset.n_threads; i++) {
@@ -98,18 +115,24 @@ int main(int argc, char** argv) {
             t.join();
         }
         long long exec_t = timerStop();
-        cout << END_DEBUG_STR;
+        ccout(0) << END_DEBUG_STR;
 
-        cout << "Time: " << ((float)exec_t / 1000000.0f) << "s" << endl;
-        cout << "Seed: " << best_seed << endl;
-        cout << "Colors: " << min_nc << endl;
+        res_tabu = min_nc;
+
+        ccout(0) << "Time: " << ((float)exec_t / 1000000.0f) << "s" << endl;
+        ccout(0) << "Seed: " << best_seed << endl;
+        ccout(0) << "Colors: " << min_nc << endl;
 
         graph.setColoring(min_colors);
             
         if (preset.actions & CHECK_COLORING) {
             int nc, ne;
-            cout << "Tabu OK?: " << graph.coloredCorrectly(nc, ne);
-            cout << ", color check: " << nc+1 << " 2*edges: " << ne << endl;
+            bool cc = graph.coloredCorrectly(nc, ne);
+            if (!cc) {
+                cerr << "WARNING: Graph incorrectly colored t\n";
+            }
+            ccout(0) << "Tabu OK?: " << cc;
+            ccout(0) << ", color check: " << nc+1 << " 2*edges: " << ne << endl;
         }
         if (preset.actions & GEN_GRAPH_FILE && (preset.actions & FORCE_GEN || min_nc < preset.value_to_improve)) {
             string fname = strip_fname(preset.f_graph_in);
@@ -118,12 +141,17 @@ int main(int argc, char** argv) {
             ofstream file(ss.str());
             graph.saveColors(file);
             file.close();
-            cout << "Stored solution in " << ss.str() << endl;
+            ccout(0) << "Stored solution in " << ss.str() << endl;
         } else {
             ofstream file(".last_ts");
             graph.saveColors(file);
             file.close();
         }
+
+        if (preset.out_fmt) {
+            printf(preset.out_fmt, res_tabu, res_greedy);
+        }
+
     }
     return 0;
 }

@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import math
 
 # label data:
 plt.xlabel("Iteracja")
@@ -31,6 +32,8 @@ class Limit:
 
 xlimit = Limit(plt.xlim)
 ylimit = Limit(plt.ylim)
+
+xlimit.feed(-30000)
 
 plots = ['r.-', 'g.-', 'b.-', 'y.-']
 

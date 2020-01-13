@@ -25,8 +25,9 @@ class Graph {
     int colorGreedily(vector<int> &colors) {
         int max_color = 0;
         int n = vertices.size();
+        colors.assign(n, -1);
+        vector<bool> available(n, true);
         for (int i = 0; i < n; i++) {
-            vector<bool> available(n, true);
 
             for (int w : vertices[i]) {
                 int c = colors[w];
@@ -43,7 +44,7 @@ class Graph {
                     break;
                 }  
             }
-            
+            available.assign(n, true);
         }
         return max_color+1;
     }
@@ -127,18 +128,19 @@ public:
     bool coloredCorrectly(int &mc, int &ne) {
         mc = 0;
         ne = 0;
+        bool corr = true;
         for (int v=0; v < vertices.size(); v++) {
             if (colors[v] < 0)
-                return false;
+                printf("colors[%d] = %d", v, colors[v]),corr = false;
             if (colors[v] > mc)
                 mc = colors[v];
             for(int w : vertices[v]) {
                 ne++;
                 if (colors[v] == colors[w])
-                    return false;
+                    corr = false;
             }
         }
-        return true;
+        return corr;
     }
 
     int getNumVertices() {
@@ -291,15 +293,14 @@ public:
     }
     
 
-    time_t randomize(int n, float sat) {
-        return randomize(n, sat, time(NULL));
+    time_t randomize_n_sat(int n, float sat, time_t seed) {
+        return randomize_n_m(n, (int)(sat * n * (n-1) / 2), seed);
     }
 
-    time_t randomize(int n, float saturation, time_t seed) // creates a random graph (undirected)
+    time_t randomize_n_m(int n, int M, time_t seed) // creates a random graph (undirected)
     {
         vertices = vector<list<int>>(n);
         colors = vector<int>(n, -1);
-        int M = saturation * n * (n-1);
         uniform_int_distribution<int> R(0, n-1);
         default_random_engine gen(seed);
 
@@ -307,7 +308,7 @@ public:
 
         int v, w;
         num_edges = 0;
-        for (int i=0; i < M / 2; i++) {
+        for (int i=0; i < M; i++) {
             do {
                 v = R(gen);
                 do w = R(gen) % n; while (w == v);
@@ -318,6 +319,8 @@ public:
         }
         return seed;
     }
+
+    
 
     bool saveGraph() {
         char fname2[64] = {0};
@@ -340,10 +343,10 @@ public:
         fclose(file);
         return true;
     }
-    void fromFile(const char* fname) {
+    void fromFile(const char* fname, bool one_entry_per_pair=true) {
         FILE *file = fopen(fname, "r");
         if (!file)
-            cerr << "Error file\n";
+            cerr << "Error file" << fname << "\n";
         int n;
         num_edges = 0;
         fscanf(file, "%d", &n);
@@ -353,10 +356,16 @@ public:
         int v, w;
         while (fscanf(file, "%d%d", &v, &w) != -1) {
             vertices[v-1].push_front(w-1);
-            vertices[w-1].push_front(v-1);
+            if (one_entry_per_pair) {
+                vertices[w-1].push_front(v-1);
+            }
             num_edges++;
         }
         fclose(file);
+
+        if (!one_entry_per_pair)
+            num_edges /= 2;
+
         d_cout << "Loaded" << dendl;
     }
 

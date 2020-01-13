@@ -14,7 +14,7 @@ preset_t parse_args(int argc, char** argv) {
     char c;
     preset_t preset = presets[1];
 
-    const char *ostr = "hp:n:s:i:l:b:o:GTS:vcm:l:a:g:j:";
+    const char *ostr = "hp:n:M:s:i:I:l:b:o:GTS:vcm:l:a:g:j:f:z:";
 
     opt = KETOPT_INIT;
     while ((c = ketopt(&opt, argc, argv, 0, ostr, NULL)) != -1) {// check if should build on top of a preset
@@ -24,7 +24,6 @@ preset_t parse_args(int argc, char** argv) {
                 printf("Invalid preset index %d\n", pn);
             else {
                 preset = presets[pn];
-                printf("Preset %d\n", pn);
             }
             break;
         }
@@ -40,9 +39,14 @@ preset_t parse_args(int argc, char** argv) {
             case 'n':
                 preset.size = atoi(opt.arg);
                 break;
+            case 'M':
+                preset.n_edges = atoi(opt.arg);
+                break;
             case 's':
                 preset.saturation = atof(opt.arg);
                 break;
+            case 'I':
+                preset.double_entries = true;
             case 'i':
                 preset.f_graph_in = opt.arg;
                 preset.actions |= FROM_FILE;
@@ -89,6 +93,13 @@ preset_t parse_args(int argc, char** argv) {
                 break;
             case 'j':
                 preset.n_threads = atoi(opt.arg);
+                break;
+            case 'f':
+                preset.out_fmt = opt.arg;
+                d_cout.level = -1;
+                break;
+            case 'z':
+                preset.seed1 = atoi(optarg);
                 break;
         }
     }
